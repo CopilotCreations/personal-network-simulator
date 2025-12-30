@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "persona-network-simulator"
+version = "0.1.0"
+description = "Research framework for studying synthetic persona detection"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Research Use Only"}
+authors = [
+    {name = "Research Team"}
+]
+keywords = [
+    "simulation",
+    "research",
+    "platform-safety",
+    "coordination-detection",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.5.0"]
+test = ["pytest>=7.0.0"]
+dev = [
+    "pytest>=7.0.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.scripts]
+persona-sim = "persona_sim.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["persona_sim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["persona_sim/tests"]
+python_files = ["test_*.py"]

@@ -1,0 +1,10 @@
+# Core dependencies (minimal)
+# No external LLM APIs - all generation is rule-based
+
+# Optional visualization
+matplotlib>=3.5.0
+
+# Testing
+pytest>=7.0.0
+
+# Development
