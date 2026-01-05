@@ -94,15 +94,24 @@ class LinguisticStyle:
         self._rng = random.Random()
     
     def set_seed(self, seed: int) -> None:
-        """Set random seed for reproducible styling."""
+        """Set random seed for reproducible styling.
+
+        Args:
+            seed: Integer seed value for the random number generator.
+        """
         self._rng.seed(seed)
     
     def apply_style(self, text: str) -> str:
-        """
-        Apply linguistic style constraints to text.
-        
+        """Apply linguistic style constraints to text.
+
         This transforms the input text to match the persona's
         characteristic communication style.
+
+        Args:
+            text: The input text to transform.
+
+        Returns:
+            The transformed text with style constraints applied.
         """
         text = self._apply_tone_level(text)
         text = self._apply_vocabulary_complexity(text)
@@ -116,7 +125,14 @@ class LinguisticStyle:
         return text
     
     def _apply_tone_level(self, text: str) -> str:
-        """Adjust formality level of text."""
+        """Adjust formality level of text.
+
+        Args:
+            text: The input text to adjust.
+
+        Returns:
+            Text with formality level adjusted based on tone constraints.
+        """
         tone = self.constraints.tone_level
         
         if tone in (ToneLevel.VERY_FORMAL, ToneLevel.FORMAL):
@@ -134,7 +150,14 @@ class LinguisticStyle:
         return text
     
     def _apply_vocabulary_complexity(self, text: str) -> str:
-        """Adjust vocabulary complexity."""
+        """Adjust vocabulary complexity.
+
+        Args:
+            text: The input text to adjust.
+
+        Returns:
+            Text with vocabulary substituted based on complexity setting.
+        """
         if self.constraints.vocabulary_complexity > 0.7:
             # Use more complex vocabulary
             for simple, complex_options in self.SIMPLE_TO_COMPLEX.items():
@@ -146,7 +169,14 @@ class LinguisticStyle:
         return text
     
     def _apply_contractions(self, text: str) -> str:
-        """Apply or remove contractions based on style."""
+        """Apply or remove contractions based on style.
+
+        Args:
+            text: The input text to adjust.
+
+        Returns:
+            Text with contractions applied or expanded based on constraints.
+        """
         contractions = {
             "I am": "I'm",
             "I have": "I've",
@@ -179,7 +209,14 @@ class LinguisticStyle:
         return text
     
     def _apply_punctuation_style(self, text: str) -> str:
-        """Adjust punctuation style."""
+        """Adjust punctuation style.
+
+        Args:
+            text: The input text to adjust.
+
+        Returns:
+            Text with punctuation adjusted based on style setting.
+        """
         style = self.constraints.punctuation_style
         
         if style == "expressive":
@@ -195,7 +232,14 @@ class LinguisticStyle:
         return text
     
     def _apply_favorite_phrases(self, text: str) -> str:
-        """Occasionally insert favorite phrases."""
+        """Occasionally insert favorite phrases.
+
+        Args:
+            text: The input text to potentially modify.
+
+        Returns:
+            Text with favorite phrases occasionally prepended.
+        """
         if self.constraints.favorite_phrases and self._rng.random() > 0.7:
             phrase = self._rng.choice(self.constraints.favorite_phrases)
             text = f"{phrase} {text}"
@@ -203,7 +247,14 @@ class LinguisticStyle:
         return text
     
     def _add_emoji(self, text: str) -> str:
-        """Add appropriate emoji to text."""
+        """Add appropriate emoji to text.
+
+        Args:
+            text: The input text to append emoji to.
+
+        Returns:
+            Text with a sentiment-appropriate emoji appended.
+        """
         positive_emoji = ["👍", "✨", "💡", "🎯"]
         negative_emoji = ["😕", "🤔", "⚠️"]
         neutral_emoji = ["📌", "💭", "📝"]
@@ -224,10 +275,12 @@ class LinguisticStyle:
         return f"{text} {emoji}"
     
     def compute_style_vector(self) -> List[float]:
-        """
-        Compute a numerical representation of this style.
-        
+        """Compute a numerical representation of this style.
+
         Used for comparing style similarity between personas.
+
+        Returns:
+            A list of floats representing the style as a numerical vector.
         """
         return [
             self.constraints.tone_level.value / 4.0,
@@ -243,10 +296,14 @@ class LinguisticStyle:
     
     @staticmethod
     def compute_similarity(style1: "LinguisticStyle", style2: "LinguisticStyle") -> float:
-        """
-        Compute similarity between two linguistic styles.
-        
-        Returns a value from 0.0 (completely different) to 1.0 (identical).
+        """Compute similarity between two linguistic styles.
+
+        Args:
+            style1: The first linguistic style to compare.
+            style2: The second linguistic style to compare.
+
+        Returns:
+            A float from 0.0 (completely different) to 1.0 (identical).
         """
         vec1 = style1.compute_style_vector()
         vec2 = style2.compute_style_vector()

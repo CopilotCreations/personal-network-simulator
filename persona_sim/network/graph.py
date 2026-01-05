@@ -35,15 +35,25 @@ class Connection:
     interaction_count: int = 0
     
     def __post_init__(self):
+        """Clamp strength value to valid range [0.0, 1.0] after initialization."""
         self.strength = max(0.0, min(1.0, self.strength))
     
     def record_interaction(self) -> None:
-        """Record an interaction and slightly strengthen the connection."""
+        """Record an interaction and slightly strengthen the connection.
+
+        Increments the interaction count by 1 and increases connection
+        strength by 0.01, capped at 1.0.
+        """
         self.interaction_count += 1
         self.strength = min(1.0, self.strength + 0.01)
     
     def decay(self, factor: float = 0.99) -> None:
-        """Decay connection strength over time."""
+        """Decay connection strength over time.
+
+        Args:
+            factor: Multiplicative decay factor applied to strength.
+                Defaults to 0.99.
+        """
         self.strength *= factor
 
 
@@ -59,20 +69,29 @@ class SocialGraph:
     """
     
     def __init__(self):
+        """Initialize an empty social graph."""
         self._nodes: Set[str] = set()
         self._edges: Dict[Tuple[str, str], Connection] = {}
         self._outgoing: Dict[str, Set[str]] = {}
         self._incoming: Dict[str, Set[str]] = {}
     
     def add_node(self, persona_id: str) -> None:
-        """Add a persona to the graph."""
+        """Add a persona to the graph.
+
+        Args:
+            persona_id: Unique identifier for the persona to add.
+        """
         if persona_id not in self._nodes:
             self._nodes.add(persona_id)
             self._outgoing[persona_id] = set()
             self._incoming[persona_id] = set()
     
     def remove_node(self, persona_id: str) -> None:
-        """Remove a persona and all their connections."""
+        """Remove a persona and all their connections.
+
+        Args:
+            persona_id: Unique identifier for the persona to remove.
+        """
         if persona_id not in self._nodes:
             return
         
@@ -95,7 +114,20 @@ class SocialGraph:
         connection_type: ConnectionType = ConnectionType.FOLLOWER,
         strength: float = 0.5,
     ) -> Connection:
-        """Add a directed connection between two personas."""
+        """Add a directed connection between two personas.
+
+        If the connection type is MUTUAL or CLOSE, a reverse edge is also added.
+        Both personas are automatically added to the graph if not present.
+
+        Args:
+            source_id: Unique identifier for the source persona.
+            target_id: Unique identifier for the target persona.
+            connection_type: Type of connection. Defaults to FOLLOWER.
+            strength: Connection strength from 0.0 to 1.0. Defaults to 0.5.
+
+        Returns:
+            The created Connection object.
+        """
         # Ensure both nodes exist
         self.add_node(source_id)
         self.add_node(target_id)
@@ -126,7 +158,12 @@ class SocialGraph:
         return connection
     
     def remove_connection(self, source_id: str, target_id: str) -> None:
-        """Remove a connection between two personas."""
+        """Remove a connection between two personas.
+
+        Args:
+            source_id: Unique identifier for the source persona.
+            target_id: Unique identifier for the target persona.
+        """
         key = (source_id, target_id)
         if key in self._edges:
             del self._edges[key]
@@ -134,55 +171,108 @@ class SocialGraph:
             self._incoming[target_id].discard(source_id)
     
     def get_connection(self, source_id: str, target_id: str) -> Optional[Connection]:
-        """Get the connection between two personas."""
+        """Get the connection between two personas.
+
+        Args:
+            source_id: Unique identifier for the source persona.
+            target_id: Unique identifier for the target persona.
+
+        Returns:
+            The Connection object if it exists, None otherwise.
+        """
         return self._edges.get((source_id, target_id))
     
     def get_followers(self, persona_id: str) -> List[str]:
-        """Get all personas that follow this persona."""
+        """Get all personas that follow this persona.
+
+        Args:
+            persona_id: Unique identifier for the persona.
+
+        Returns:
+            List of persona IDs that have outgoing connections to this persona.
+        """
         return list(self._incoming.get(persona_id, []))
     
     def get_following(self, persona_id: str) -> List[str]:
-        """Get all personas this persona follows."""
+        """Get all personas this persona follows.
+
+        Args:
+            persona_id: Unique identifier for the persona.
+
+        Returns:
+            List of persona IDs that this persona has outgoing connections to.
+        """
         return list(self._outgoing.get(persona_id, []))
     
     def get_mutual_connections(self, persona_id: str) -> List[str]:
-        """Get personas with mutual connections."""
+        """Get personas with mutual connections.
+
+        Args:
+            persona_id: Unique identifier for the persona.
+
+        Returns:
+            List of persona IDs that both follow and are followed by this persona.
+        """
         following = self._outgoing.get(persona_id, set())
         followers = self._incoming.get(persona_id, set())
         return list(following & followers)
     
     def get_neighbors(self, persona_id: str) -> List[str]:
-        """Get all connected personas (in or out)."""
+        """Get all connected personas (in or out).
+
+        Args:
+            persona_id: Unique identifier for the persona.
+
+        Returns:
+            List of persona IDs connected in either direction.
+        """
         following = self._outgoing.get(persona_id, set())
         followers = self._incoming.get(persona_id, set())
         return list(following | followers)
     
     @property
     def nodes(self) -> List[str]:
-        """All persona IDs in the graph."""
+        """All persona IDs in the graph.
+
+        Returns:
+            List of all persona IDs currently in the graph.
+        """
         return list(self._nodes)
     
     @property
     def edges(self) -> List[Connection]:
-        """All connections in the graph."""
+        """All connections in the graph.
+
+        Returns:
+            List of all Connection objects in the graph.
+        """
         return list(self._edges.values())
     
     @property
     def node_count(self) -> int:
-        """Number of personas in the graph."""
+        """Number of personas in the graph.
+
+        Returns:
+            Total count of personas in the graph.
+        """
         return len(self._nodes)
     
     @property
     def edge_count(self) -> int:
-        """Number of connections in the graph."""
+        """Number of connections in the graph.
+
+        Returns:
+            Total count of directed connections in the graph.
+        """
         return len(self._edges)
     
     def density(self) -> float:
-        """
-        Calculate graph density.
-        
-        Density = edges / (nodes * (nodes - 1))
-        For directed graphs.
+        """Calculate graph density.
+
+        Density = edges / (nodes * (nodes - 1)) for directed graphs.
+
+        Returns:
+            Graph density as a float between 0.0 and 1.0.
         """
         n = self.node_count
         if n < 2:
@@ -191,10 +281,15 @@ class SocialGraph:
         return self.edge_count / max_edges
     
     def clustering_coefficient(self, persona_id: str) -> float:
-        """
-        Calculate local clustering coefficient for a persona.
-        
+        """Calculate local clustering coefficient for a persona.
+
         Measures how interconnected a persona's neighbors are.
+
+        Args:
+            persona_id: Unique identifier for the persona.
+
+        Returns:
+            Clustering coefficient between 0.0 and 1.0.
         """
         neighbors = self.get_neighbors(persona_id)
         k = len(neighbors)
@@ -213,7 +308,11 @@ class SocialGraph:
         return edges_between / max_edges
     
     def average_clustering(self) -> float:
-        """Calculate average clustering coefficient across all personas."""
+        """Calculate average clustering coefficient across all personas.
+
+        Returns:
+            Average clustering coefficient between 0.0 and 1.0.
+        """
         if self.node_count == 0:
             return 0.0
         
@@ -221,10 +320,14 @@ class SocialGraph:
         return total / self.node_count
     
     def shortest_path_length(self, source_id: str, target_id: str) -> Optional[int]:
-        """
-        Find shortest path length between two personas using BFS.
-        
-        Returns None if no path exists.
+        """Find shortest path length between two personas using BFS.
+
+        Args:
+            source_id: Unique identifier for the starting persona.
+            target_id: Unique identifier for the destination persona.
+
+        Returns:
+            Shortest path length as an integer, or None if no path exists.
         """
         if source_id not in self._nodes or target_id not in self._nodes:
             return None
@@ -249,11 +352,17 @@ class SocialGraph:
         return None
     
     def find_communities(self, min_size: int = 2) -> List[Set[str]]:
-        """
-        Find communities using simple connected components.
-        
+        """Find communities using simple connected components.
+
         For more sophisticated detection, use proper algorithms
         like Louvain or label propagation.
+
+        Args:
+            min_size: Minimum size for a community to be included.
+                Defaults to 2.
+
+        Returns:
+            List of sets, where each set contains persona IDs in a community.
         """
         visited = set()
         communities = []
@@ -286,7 +395,12 @@ class SocialGraph:
         return communities
     
     def decay_all_connections(self, factor: float = 0.99) -> None:
-        """Apply decay to all connection strengths."""
+        """Apply decay to all connection strengths.
+
+        Args:
+            factor: Multiplicative decay factor applied to each connection.
+                Defaults to 0.99.
+        """
         for connection in self._edges.values():
             connection.decay(factor)
     
@@ -297,10 +411,18 @@ class SocialGraph:
         connection_probability: float = 0.3,
         seed: Optional[int] = None,
     ) -> "SocialGraph":
-        """
-        Create a random graph with given connection probability.
-        
-        Uses Erdős–Rényi model.
+        """Create a random graph with given connection probability.
+
+        Uses the Erdős–Rényi model for random graph generation.
+
+        Args:
+            persona_ids: List of persona IDs to include in the graph.
+            connection_probability: Probability of creating an edge between
+                any two personas. Defaults to 0.3.
+            seed: Random seed for reproducibility. Defaults to None.
+
+        Returns:
+            A new SocialGraph instance with random connections.
         """
         rng = random.Random(seed)
         graph = cls()
@@ -327,13 +449,19 @@ class SocialGraph:
         rewire_prob: float = 0.1,
         seed: Optional[int] = None,
     ) -> "SocialGraph":
-        """
-        Create a small-world graph (Watts-Strogatz model).
-        
+        """Create a small-world graph using the Watts-Strogatz model.
+
+        Generates a ring lattice where each node is connected to k nearest
+        neighbors, then randomly rewires edges with the given probability.
+
         Args:
-            persona_ids: List of persona IDs
-            k: Each node connected to k nearest neighbors
-            rewire_prob: Probability of rewiring each edge
+            persona_ids: List of persona IDs to include in the graph.
+            k: Number of nearest neighbors each node connects to. Defaults to 4.
+            rewire_prob: Probability of rewiring each edge. Defaults to 0.1.
+            seed: Random seed for reproducibility. Defaults to None.
+
+        Returns:
+            A new SocialGraph instance with small-world properties.
         """
         rng = random.Random(seed)
         graph = cls()
@@ -367,4 +495,9 @@ class SocialGraph:
         return graph
     
     def __repr__(self) -> str:
+        """Return a string representation of the graph.
+
+        Returns:
+            String showing node and edge counts.
+        """
         return f"SocialGraph(nodes={self.node_count}, edges={self.edge_count})"

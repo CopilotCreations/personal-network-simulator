@@ -70,11 +70,17 @@ class IndependenceDetector:
         events: List[InteractionEvent],
         persona_ids: List[str],
     ) -> List[CoordinationSignal]:
-        """
-        Detect timing-based coordination signals.
-        
+        """Detect timing-based coordination signals.
+
         Looks for personas that post within suspiciously short
         time windows of each other.
+
+        Args:
+            events: List of interaction events to analyze.
+            persona_ids: List of persona IDs to check for coordination.
+
+        Returns:
+            List of coordination signals detected from timing patterns.
         """
         signals = []
         
@@ -124,7 +130,15 @@ class IndependenceDetector:
         self,
         sorted_events: List[InteractionEvent],
     ) -> List[List[InteractionEvent]]:
-        """Find clusters of events that occur close together."""
+        """Find clusters of events that occur close together.
+
+        Args:
+            sorted_events: List of interaction events sorted by timestamp.
+
+        Returns:
+            List of clusters, where each cluster is a list of events that
+            occurred within the timing window of each other.
+        """
         if not sorted_events:
             return []
         
@@ -151,10 +165,17 @@ class IndependenceDetector:
         events: List[InteractionEvent],
         styles: Dict[str, LinguisticStyle],
     ) -> List[CoordinationSignal]:
-        """
-        Detect phrasing-based coordination signals.
-        
-        Looks for suspiciously similar language patterns.
+        """Detect phrasing-based coordination signals.
+
+        Looks for suspiciously similar language patterns across
+        personas' event content and linguistic styles.
+
+        Args:
+            events: List of interaction events to analyze for content similarity.
+            styles: Dictionary mapping persona IDs to their linguistic styles.
+
+        Returns:
+            List of coordination signals detected from phrasing patterns.
         """
         signals = []
         
@@ -192,7 +213,15 @@ class IndependenceDetector:
         self,
         events: List[InteractionEvent],
     ) -> List[List[InteractionEvent]]:
-        """Find groups of events with similar content."""
+        """Find groups of events with similar content.
+
+        Args:
+            events: List of interaction events to compare.
+
+        Returns:
+            List of groups, where each group contains events with
+            content similarity above the threshold.
+        """
         if len(events) < 2:
             return []
         
@@ -224,10 +253,17 @@ class IndependenceDetector:
         return groups
     
     def _compute_content_similarity(self, text_a: str, text_b: str) -> float:
-        """
-        Compute simple similarity between two texts.
-        
-        Uses word overlap (Jaccard similarity).
+        """Compute simple similarity between two texts.
+
+        Uses word overlap (Jaccard similarity) to measure how similar
+        two text strings are.
+
+        Args:
+            text_a: First text string to compare.
+            text_b: Second text string to compare.
+
+        Returns:
+            Similarity score between 0.0 (no overlap) and 1.0 (identical words).
         """
         if not text_a or not text_b:
             return 0.0
@@ -247,7 +283,14 @@ class IndependenceDetector:
         self,
         styles: Dict[str, LinguisticStyle],
     ) -> List[CoordinationSignal]:
-        """Find personas with suspiciously similar linguistic styles."""
+        """Find personas with suspiciously similar linguistic styles.
+
+        Args:
+            styles: Dictionary mapping persona IDs to their linguistic styles.
+
+        Returns:
+            List of coordination signals for personas with similar styles.
+        """
         signals = []
         persona_ids = list(styles.keys())
         
@@ -296,12 +339,17 @@ class IndependenceDetector:
         self,
         belief_history: Dict[str, List[Tuple[datetime, str, float]]],
     ) -> List[CoordinationSignal]:
-        """
-        Detect belief updates that happen synchronously.
-        
+        """Detect belief updates that happen synchronously.
+
+        Identifies personas that update their beliefs on the same topics
+        at similar times and to similar positions.
+
         Args:
-            belief_history: Dict mapping persona_id to list of
-                           (timestamp, topic, position) tuples
+            belief_history: Dictionary mapping persona_id to list of
+                (timestamp, topic, position) tuples representing belief changes.
+
+        Returns:
+            List of coordination signals for synchronized belief updates.
         """
         signals = []
         
@@ -346,7 +394,16 @@ class IndependenceDetector:
         self,
         sorted_changes: List[Tuple[str, datetime, float]],
     ) -> List[List[Tuple[str, datetime, float]]]:
-        """Find clusters of synchronized belief changes."""
+        """Find clusters of synchronized belief changes.
+
+        Args:
+            sorted_changes: List of (persona_id, timestamp, position) tuples
+                sorted by timestamp.
+
+        Returns:
+            List of clusters, where each cluster contains belief changes
+            that occurred within the timing window of each other.
+        """
         if len(sorted_changes) < 2:
             return []
         
@@ -372,10 +429,16 @@ class IndependenceDetector:
         self,
         events: List[InteractionEvent],
     ) -> List[CoordinationSignal]:
-        """
-        Detect suspicious response patterns.
-        
-        Looks for personas that always respond to the same sources.
+        """Detect suspicious response patterns.
+
+        Looks for personas that consistently respond to the same sources,
+        which may indicate coordinated behavior.
+
+        Args:
+            events: List of interaction events to analyze.
+
+        Returns:
+            List of coordination signals for suspicious response patterns.
         """
         signals = []
         
@@ -422,10 +485,16 @@ class IndependenceDetector:
         persona_id: str,
         all_signals: Optional[List[CoordinationSignal]] = None,
     ) -> float:
-        """
-        Compute an independence score for a persona.
-        
-        Returns value from 0 (highly coordinated) to 1 (fully independent).
+        """Compute an independence score for a persona.
+
+        Args:
+            persona_id: The ID of the persona to score.
+            all_signals: Optional list of signals to use. If None, uses
+                internally tracked signals.
+
+        Returns:
+            Independence score from 0.0 (highly coordinated) to 1.0
+            (fully independent).
         """
         signals = all_signals or self._signals
         
@@ -445,19 +514,43 @@ class IndependenceDetector:
         return 1.0 - normalized
     
     def get_all_signals(self) -> List[CoordinationSignal]:
-        """Get all detected coordination signals."""
+        """Get all detected coordination signals.
+
+        Returns:
+            Copy of the list of all coordination signals detected so far.
+        """
         return self._signals.copy()
     
     def get_strong_signals(self) -> List[CoordinationSignal]:
-        """Get only strong coordination signals."""
+        """Get only strong coordination signals.
+
+        Returns:
+            List of coordination signals with strength > 0.7.
+        """
         return [s for s in self._signals if s.is_strong]
     
     def get_signals_for_persona(self, persona_id: str) -> List[CoordinationSignal]:
-        """Get all signals involving a specific persona."""
+        """Get all signals involving a specific persona.
+
+        Args:
+            persona_id: The ID of the persona to filter signals for.
+
+        Returns:
+            List of coordination signals that include the specified persona.
+        """
         return [s for s in self._signals if persona_id in s.persona_ids]
     
     def get_coordination_summary(self) -> Dict[str, any]:
-        """Get a summary of detected coordination."""
+        """Get a summary of detected coordination.
+
+        Returns:
+            Dictionary containing:
+                - total_signals: Total number of coordination signals.
+                - strong_signals: Number of signals with strength > 0.7.
+                - moderate_signals: Number of signals with 0.4 < strength <= 0.7.
+                - signals_by_type: Count of signals by type.
+                - coordinated_personas: Top 10 personas by signal involvement.
+        """
         signals = self._signals
         
         if not signals:
@@ -494,8 +587,16 @@ class IndependenceDetector:
         }
     
     def clear_signals(self) -> None:
-        """Clear all detected signals."""
+        """Clear all detected signals.
+
+        Removes all coordination signals from internal storage.
+        """
         self._signals.clear()
     
     def __repr__(self) -> str:
+        """Return string representation of the detector.
+
+        Returns:
+            String showing the number of signals currently tracked.
+        """
         return f"IndependenceDetector(signals={len(self._signals)})"

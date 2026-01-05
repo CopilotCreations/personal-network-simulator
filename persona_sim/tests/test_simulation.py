@@ -17,6 +17,12 @@ class TestSimulationEngine:
     
     @pytest.fixture
     def engine(self):
+        """Create a SimulationEngine instance for testing.
+
+        Returns:
+            SimulationEngine: A configured simulation engine with 1-hour duration,
+                15-minute time steps, and 2 interactions per step.
+        """
         config = SimulationConfig(
             duration_hours=1.0,
             time_step_minutes=15.0,
@@ -27,6 +33,11 @@ class TestSimulationEngine:
     
     @pytest.fixture
     def personas(self):
+        """Create a list of test personas.
+
+        Returns:
+            list[Persona]: A list of 5 personas with incrementing ages starting at 25.
+        """
         personas = []
         for i in range(5):
             profile = PersonaProfile(
@@ -38,12 +49,24 @@ class TestSimulationEngine:
         return personas
     
     def test_add_persona(self, engine, personas):
+        """Test that personas can be added to the simulation engine.
+
+        Args:
+            engine: The SimulationEngine fixture.
+            personas: The list of test personas fixture.
+        """
         for persona in personas:
             engine.add_persona(persona)
         
         assert len(engine.personas) == 5
     
     def test_add_connection(self, engine, personas):
+        """Test that connections can be added between personas.
+
+        Args:
+            engine: The SimulationEngine fixture.
+            personas: The list of test personas fixture.
+        """
         for persona in personas:
             engine.add_persona(persona)
         
@@ -52,6 +75,12 @@ class TestSimulationEngine:
         assert engine.graph.edge_count > 0
     
     def test_run_steps(self, engine, personas):
+        """Test running a specific number of simulation steps.
+
+        Args:
+            engine: The SimulationEngine fixture.
+            personas: The list of test personas fixture.
+        """
         for persona in personas:
             engine.add_persona(persona)
             persona.add_belief("test_topic", 0.5, 0.5)
@@ -66,6 +95,12 @@ class TestSimulationEngine:
         assert state.phase == SimulationPhase.RUNNING
     
     def test_run_full_simulation(self, engine, personas):
+        """Test running a complete simulation to completion.
+
+        Args:
+            engine: The SimulationEngine fixture.
+            personas: The list of test personas fixture.
+        """
         for persona in personas:
             engine.add_persona(persona)
             persona.add_belief("topic_a", 0.3, 0.5)
@@ -79,6 +114,12 @@ class TestSimulationEngine:
         assert state.step_count > 0
     
     def test_event_callbacks(self, engine, personas):
+        """Test that interaction event callbacks are triggered during simulation.
+
+        Args:
+            engine: The SimulationEngine fixture.
+            personas: The list of test personas fixture.
+        """
         for persona in personas:
             engine.add_persona(persona)
             persona.add_belief("topic", 0.5, 0.5)
@@ -93,6 +134,12 @@ class TestSimulationEngine:
         assert len(events_received) > 0
     
     def test_export_state(self, engine, personas):
+        """Test exporting the simulation engine state to a dictionary.
+
+        Args:
+            engine: The SimulationEngine fixture.
+            personas: The list of test personas fixture.
+        """
         for persona in personas:
             engine.add_persona(persona)
         
@@ -108,15 +155,30 @@ class TestNarrativeTracker:
     
     @pytest.fixture
     def tracker(self):
+        """Create a NarrativeTracker instance for testing.
+
+        Returns:
+            NarrativeTracker: A new narrative tracker instance.
+        """
         return NarrativeTracker()
     
     def test_register_topic(self, tracker):
+        """Test registering a new topic with the narrative tracker.
+
+        Args:
+            tracker: The NarrativeTracker fixture.
+        """
         narrative = tracker.register_topic("climate_change")
         
         assert narrative.topic == "climate_change"
         assert "climate_change" in tracker.topics
     
     def test_update_belief(self, tracker):
+        """Test updating persona beliefs and computing similarity.
+
+        Args:
+            tracker: The NarrativeTracker fixture.
+        """
         tracker.register_topic("topic_a")
         
         tracker.update_belief("persona_1", "topic_a", 0.5, 0.6)
@@ -126,6 +188,11 @@ class TestNarrativeTracker:
         assert similarity > 0.5  # Similar positions
     
     def test_take_snapshot(self, tracker):
+        """Test taking a belief snapshot for a topic.
+
+        Args:
+            tracker: The NarrativeTracker fixture.
+        """
         tracker.register_topic("topic")
         tracker.update_belief("p1", "topic", 0.5, 0.5)
         tracker.update_belief("p2", "topic", 0.6, 0.5)
@@ -137,6 +204,11 @@ class TestNarrativeTracker:
         assert snapshot.mean_position == pytest.approx(0.2, abs=0.01)
     
     def test_detect_echo_chambers(self, tracker):
+        """Test detection of echo chambers based on belief similarity.
+
+        Args:
+            tracker: The NarrativeTracker fixture.
+        """
         # Create group with very similar beliefs
         for i in range(5):
             tracker.update_belief(f"chamber_p{i}", "topic", 0.8 + i * 0.01, 0.9)
@@ -151,6 +223,11 @@ class TestNarrativeTracker:
         assert len(chambers) >= 1
     
     def test_narrative_summary(self, tracker):
+        """Test getting a narrative summary for a topic.
+
+        Args:
+            tracker: The NarrativeTracker fixture.
+        """
         tracker.register_topic("topic")
         tracker.update_belief("p1", "topic", 0.5, 0.5, source_id="p0")
         
@@ -164,6 +241,7 @@ class TestBeliefSnapshot:
     """Tests for BeliefSnapshot class."""
     
     def test_mean_position(self):
+        """Test calculation of mean belief position across personas."""
         snapshot = BeliefSnapshot(
             timestamp=datetime.now(),
             topic="test",
@@ -174,6 +252,7 @@ class TestBeliefSnapshot:
         assert snapshot.mean_position == 0.5
     
     def test_position_variance(self):
+        """Test calculation of position variance when all positions are identical."""
         snapshot = BeliefSnapshot(
             timestamp=datetime.now(),
             topic="test",
@@ -184,6 +263,7 @@ class TestBeliefSnapshot:
         assert snapshot.position_variance == 0.0
     
     def test_consensus_score(self):
+        """Test that consensus score is high when positions are identical."""
         # High consensus (low variance)
         snapshot = BeliefSnapshot(
             timestamp=datetime.now(),
@@ -194,6 +274,7 @@ class TestBeliefSnapshot:
         assert snapshot.consensus_score > 0.9
     
     def test_get_clusters(self):
+        """Test clustering of belief positions into distinct groups."""
         snapshot = BeliefSnapshot(
             timestamp=datetime.now(),
             topic="test",
@@ -213,9 +294,19 @@ class TestConvergenceAnalyzer:
     
     @pytest.fixture
     def analyzer(self):
+        """Create a ConvergenceAnalyzer instance for testing.
+
+        Returns:
+            ConvergenceAnalyzer: A convergence analyzer with 0.2 consensus threshold.
+        """
         return ConvergenceAnalyzer(consensus_threshold=0.2)
     
     def test_analyze_converging_narrative(self, analyzer):
+        """Test analysis of a narrative that shows convergence over time.
+
+        Args:
+            analyzer: The ConvergenceAnalyzer fixture.
+        """
         narrative = Narrative(topic="test")
         
         # Add snapshots showing convergence
@@ -236,6 +327,11 @@ class TestConvergenceAnalyzer:
         assert metrics.final_variance < metrics.initial_variance
     
     def test_detect_anomalous_convergence(self, analyzer):
+        """Test detection of anomalous convergence patterns in narratives.
+
+        Args:
+            analyzer: The ConvergenceAnalyzer fixture.
+        """
         # Create narratives with different convergence rates
         narratives = []
         for rate in [0.1, 0.1, 0.1, 0.5, 0.1]:  # One anomalous
@@ -256,9 +352,19 @@ class TestIndependenceDetector:
     
     @pytest.fixture
     def detector(self):
+        """Create an IndependenceDetector instance for testing.
+
+        Returns:
+            IndependenceDetector: A detector with 5-minute timing window.
+        """
         return IndependenceDetector(timing_window_minutes=5.0)
     
     def test_analyze_timing_correlation(self, detector):
+        """Test detection of timing correlation between persona events.
+
+        Args:
+            detector: The IndependenceDetector fixture.
+        """
         now = datetime.now()
         
         # Create synchronized events (within timing window)
@@ -296,6 +402,11 @@ class TestIndependenceDetector:
         assert signals[0].signal_type == "timing"
     
     def test_compute_independence_score(self, detector):
+        """Test computation of independence scores for personas.
+
+        Args:
+            detector: The IndependenceDetector fixture.
+        """
         # Add some signals
         signal = CoordinationSignal(
             signal_type="timing",
@@ -312,6 +423,11 @@ class TestIndependenceDetector:
         assert score_p1 < score_other  # p1 is involved in coordination
     
     def test_coordination_summary(self, detector):
+        """Test generation of coordination summary from detected signals.
+
+        Args:
+            detector: The IndependenceDetector fixture.
+        """
         # Add signals
         for i in range(3):
             detector._signals.append(CoordinationSignal(
@@ -332,6 +448,7 @@ class TestCoordinationSignal:
     """Tests for CoordinationSignal class."""
     
     def test_is_strong(self):
+        """Test classification of signals as strong or weak based on strength."""
         strong = CoordinationSignal(
             signal_type="timing",
             strength=0.8,
@@ -351,6 +468,7 @@ class TestCoordinationSignal:
         assert not weak.is_strong
     
     def test_is_moderate(self):
+        """Test classification of signals as moderate based on strength."""
         moderate = CoordinationSignal(
             signal_type="timing",
             strength=0.5,

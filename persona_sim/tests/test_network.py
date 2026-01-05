@@ -17,9 +17,19 @@ class TestSocialGraph:
     
     @pytest.fixture
     def graph(self):
+        """Create a fresh SocialGraph instance for testing.
+
+        Returns:
+            SocialGraph: An empty social graph instance.
+        """
         return SocialGraph()
     
     def test_add_nodes(self, graph):
+        """Test that nodes can be added to the graph.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_node("persona_1")
         graph.add_node("persona_2")
         
@@ -27,6 +37,11 @@ class TestSocialGraph:
         assert "persona_1" in graph.nodes
     
     def test_add_connection(self, graph):
+        """Test that connections can be added between nodes.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.FOLLOWER, strength=0.7)
         
         assert graph.edge_count == 1
@@ -35,6 +50,11 @@ class TestSocialGraph:
         assert connection.strength == 0.7
     
     def test_mutual_connection(self, graph):
+        """Test that mutual connections create edges in both directions.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.MUTUAL)
         
         assert graph.edge_count == 2
@@ -42,6 +62,11 @@ class TestSocialGraph:
         assert graph.get_connection("b", "a") is not None
     
     def test_get_followers(self, graph):
+        """Test retrieving followers of a node.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.FOLLOWER)
         graph.add_connection("c", "b", ConnectionType.FOLLOWER)
         
@@ -49,6 +74,11 @@ class TestSocialGraph:
         assert set(followers) == {"a", "c"}
     
     def test_get_following(self, graph):
+        """Test retrieving nodes that a given node follows.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.FOLLOWER)
         graph.add_connection("a", "c", ConnectionType.FOLLOWER)
         
@@ -56,6 +86,11 @@ class TestSocialGraph:
         assert set(following) == {"b", "c"}
     
     def test_get_mutual_connections(self, graph):
+        """Test retrieving mutual connections excludes one-way connections.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.MUTUAL)
         graph.add_connection("a", "c", ConnectionType.FOLLOWER)  # One-way
         
@@ -64,6 +99,11 @@ class TestSocialGraph:
         assert "c" not in mutual
     
     def test_remove_node(self, graph):
+        """Test that removing a node also removes its connections.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.MUTUAL)
         graph.add_connection("a", "c", ConnectionType.MUTUAL)
         
@@ -74,6 +114,11 @@ class TestSocialGraph:
         assert graph.get_connection("b", "a") is None
     
     def test_graph_density(self, graph):
+        """Test that a fully connected graph has density 1.0.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         # Complete graph with 3 nodes has 6 directed edges
         graph.add_connection("a", "b", ConnectionType.MUTUAL)
         graph.add_connection("b", "c", ConnectionType.MUTUAL)
@@ -83,6 +128,11 @@ class TestSocialGraph:
         assert density == 1.0  # Fully connected
     
     def test_clustering_coefficient(self, graph):
+        """Test clustering coefficient is 1.0 when all neighbors are connected.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         # Triangle: all neighbors connected
         graph.add_connection("a", "b", ConnectionType.MUTUAL)
         graph.add_connection("b", "c", ConnectionType.MUTUAL)
@@ -92,6 +142,11 @@ class TestSocialGraph:
         assert cc == 1.0  # All neighbors connected
     
     def test_shortest_path(self, graph):
+        """Test shortest path length calculation between nodes.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         graph.add_connection("a", "b", ConnectionType.FOLLOWER)
         graph.add_connection("b", "c", ConnectionType.FOLLOWER)
         graph.add_connection("c", "d", ConnectionType.FOLLOWER)
@@ -101,6 +156,11 @@ class TestSocialGraph:
         assert graph.shortest_path_length("d", "a") is None  # No reverse path
     
     def test_find_communities(self, graph):
+        """Test that disconnected groups are identified as separate communities.
+
+        Args:
+            graph: The SocialGraph fixture instance.
+        """
         # Create two disconnected groups
         graph.add_connection("a", "b", ConnectionType.MUTUAL)
         graph.add_connection("b", "c", ConnectionType.MUTUAL)
@@ -112,6 +172,7 @@ class TestSocialGraph:
         assert len(communities) == 2
     
     def test_create_random_graph(self):
+        """Test creating a random graph with specified connection probability."""
         personas = [f"p{i}" for i in range(10)]
         graph = SocialGraph.create_random(personas, connection_probability=0.5, seed=42)
         
@@ -119,6 +180,7 @@ class TestSocialGraph:
         assert graph.edge_count > 0
     
     def test_create_small_world_graph(self):
+        """Test creating a small-world graph with proper connectivity."""
         personas = [f"p{i}" for i in range(10)]
         graph = SocialGraph.create_small_world(personas, k=4, rewire_prob=0.1, seed=42)
         
@@ -133,6 +195,7 @@ class TestConnection:
     """Tests for Connection class."""
     
     def test_record_interaction(self):
+        """Test that recording an interaction increases connection strength."""
         conn = Connection("a", "b", strength=0.5)
         initial_strength = conn.strength
         
@@ -142,12 +205,14 @@ class TestConnection:
         assert conn.strength > initial_strength
     
     def test_decay(self):
+        """Test that decay reduces connection strength by the given factor."""
         conn = Connection("a", "b", strength=0.5)
         conn.decay(factor=0.9)
         
         assert conn.strength == pytest.approx(0.45)
     
     def test_strength_clamping(self):
+        """Test that connection strength is clamped between 0.0 and 1.0."""
         conn = Connection("a", "b", strength=1.5)
         assert conn.strength == 1.0
         
@@ -160,6 +225,11 @@ class TestInteractionScheduler:
     
     @pytest.fixture
     def scheduler(self):
+        """Create an InteractionScheduler instance for testing.
+
+        Returns:
+            InteractionScheduler: A scheduler configured with test settings.
+        """
         config = SchedulingConfig(
             base_interval_minutes=30.0,
             interval_variance=0.5,
@@ -167,6 +237,11 @@ class TestInteractionScheduler:
         return InteractionScheduler(config, seed=42)
     
     def test_schedule_event(self, scheduler):
+        """Test scheduling a single interaction event.
+
+        Args:
+            scheduler: The InteractionScheduler fixture instance.
+        """
         event = scheduler.schedule_event(
             interaction_type=InteractionType.POST,
             source_id="persona_1",
@@ -179,6 +254,11 @@ class TestInteractionScheduler:
         assert scheduler.pending_count == 1
     
     def test_process_next_event(self, scheduler):
+        """Test that events are processed in chronological order.
+
+        Args:
+            scheduler: The InteractionScheduler fixture instance.
+        """
         scheduler.schedule_event(
             interaction_type=InteractionType.POST,
             source_id="persona_1",
@@ -199,6 +279,11 @@ class TestInteractionScheduler:
         assert scheduler.pending_count == 1
     
     def test_schedule_burst(self, scheduler):
+        """Test scheduling a burst of events from a single source.
+
+        Args:
+            scheduler: The InteractionScheduler fixture instance.
+        """
         events = scheduler.schedule_burst(
             source_id="persona_1",
             topic="hot_topic",
@@ -209,6 +294,11 @@ class TestInteractionScheduler:
         assert all(e.source_id == "persona_1" for e in events)
     
     def test_schedule_coordinated_response(self, scheduler):
+        """Test scheduling coordinated responses that reference an original event.
+
+        Args:
+            scheduler: The InteractionScheduler fixture instance.
+        """
         original = scheduler.schedule_event(
             interaction_type=InteractionType.POST,
             source_id="leader",
@@ -227,6 +317,11 @@ class TestInteractionScheduler:
         assert all(r.in_response_to == original.event_id for r in responses)
     
     def test_process_events_until(self, scheduler):
+        """Test processing only events scheduled before a given time.
+
+        Args:
+            scheduler: The InteractionScheduler fixture instance.
+        """
         start = scheduler.current_time
         
         scheduler.schedule_event(
@@ -255,6 +350,11 @@ class TestInteractionScheduler:
         assert scheduler.pending_count == 1
     
     def test_timing_statistics(self, scheduler):
+        """Test that timing statistics are calculated correctly.
+
+        Args:
+            scheduler: The InteractionScheduler fixture instance.
+        """
         # Schedule multiple events with known timing
         for i in range(5):
             scheduler.schedule_event(
@@ -278,6 +378,7 @@ class TestInteractionEvent:
     """Tests for InteractionEvent class."""
     
     def test_event_has_unique_id(self):
+        """Test that each event receives a unique identifier."""
         event1 = InteractionEvent(
             timestamp=datetime.now(),
             interaction_type=InteractionType.POST,
@@ -296,6 +397,7 @@ class TestInteractionEvent:
         assert event1.event_id != event2.event_id
     
     def test_event_ordering(self):
+        """Test that events are ordered chronologically by timestamp."""
         now = datetime.now()
         earlier = InteractionEvent(
             timestamp=now,

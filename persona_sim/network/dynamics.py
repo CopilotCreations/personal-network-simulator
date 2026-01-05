@@ -38,11 +38,20 @@ class InteractionEvent:
     event_id: str = ""
     
     def __post_init__(self):
+        """Initialize the event ID if not provided."""
         if not self.event_id:
             import uuid
             self.event_id = str(uuid.uuid4())
     
     def __lt__(self, other: "InteractionEvent") -> bool:
+        """Compare events by timestamp for heap ordering.
+
+        Args:
+            other: Another InteractionEvent to compare against.
+
+        Returns:
+            True if this event's timestamp is earlier than the other's.
+        """
         return self.timestamp < other.timestamp
 
 
@@ -73,6 +82,12 @@ class InteractionScheduler:
         config: Optional[SchedulingConfig] = None,
         seed: Optional[int] = None,
     ):
+        """Initialize the interaction scheduler.
+
+        Args:
+            config: Scheduling configuration. Uses defaults if not provided.
+            seed: Random seed for reproducible scheduling.
+        """
         self.config = config or SchedulingConfig()
         self._rng = random.Random(seed)
         self._event_queue: List[InteractionEvent] = []
@@ -80,15 +95,28 @@ class InteractionScheduler:
         self._current_time: datetime = datetime.now()
     
     def set_start_time(self, start_time: datetime) -> None:
-        """Set the simulation start time."""
+        """Set the simulation start time.
+
+        Args:
+            start_time: The datetime to set as the current simulation time.
+        """
         self._current_time = start_time
     
     @property
     def current_time(self) -> datetime:
+        """Get the current simulation time.
+
+        Returns:
+            The current datetime in the simulation.
+        """
         return self._current_time
     
     def advance_time(self, minutes: float) -> None:
-        """Advance simulation time by given minutes."""
+        """Advance simulation time by given minutes.
+
+        Args:
+            minutes: Number of minutes to advance the simulation clock.
+        """
         self._current_time += timedelta(minutes=minutes)
     
     def schedule_event(
@@ -101,17 +129,19 @@ class InteractionScheduler:
         delay_minutes: Optional[float] = None,
         absolute_time: Optional[datetime] = None,
     ) -> InteractionEvent:
-        """
-        Schedule a new interaction event.
-        
+        """Schedule a new interaction event.
+
         Args:
-            interaction_type: Type of interaction
-            source_id: Persona initiating the interaction
-            topic: Topic of the interaction
-            target_id: Target persona (for replies/shares)
-            content: Content of the interaction
-            delay_minutes: Delay from current time (or uses natural timing)
-            absolute_time: Specific time to schedule at
+            interaction_type: Type of interaction (POST, REPLY, SHARE, REACT).
+            source_id: Persona initiating the interaction.
+            topic: Topic of the interaction.
+            target_id: Target persona (for replies/shares). Defaults to None.
+            content: Content of the interaction. Defaults to empty string.
+            delay_minutes: Delay from current time. Uses natural timing if None.
+            absolute_time: Specific time to schedule at. Takes precedence over delay.
+
+        Returns:
+            The scheduled InteractionEvent.
         """
         if absolute_time:
             event_time = absolute_time
@@ -133,7 +163,14 @@ class InteractionScheduler:
         return event
     
     def _calculate_natural_time(self) -> datetime:
-        """Calculate a natural-feeling next event time."""
+        """Calculate a natural-feeling next event time.
+
+        Applies random variance to the base interval and avoids quiet hours
+        to simulate realistic human posting patterns.
+
+        Returns:
+            A datetime for the next event with natural timing variance.
+        """
         base = self.config.base_interval_minutes
         variance = self.config.interval_variance
         
@@ -155,10 +192,18 @@ class InteractionScheduler:
         topic: str,
         interaction_type: InteractionType = InteractionType.POST,
     ) -> List[InteractionEvent]:
-        """
-        Schedule a burst of activity from a persona.
-        
-        Bursts are characterized by rapid successive interactions.
+        """Schedule a burst of activity from a persona.
+
+        Bursts are characterized by rapid successive interactions,
+        typically 30 seconds to 3 minutes apart.
+
+        Args:
+            source_id: The persona initiating the burst.
+            topic: Topic for all burst interactions.
+            interaction_type: Type of interaction. Defaults to POST.
+
+        Returns:
+            List of scheduled InteractionEvents in the burst.
         """
         count = self._rng.randint(*self.config.burst_count_range)
         events = []
@@ -183,11 +228,18 @@ class InteractionScheduler:
         original_event: InteractionEvent,
         topic: str,
     ) -> List[InteractionEvent]:
-        """
-        Schedule coordinated responses from multiple personas.
-        
+        """Schedule coordinated responses from multiple personas.
+
         This simulates coordinated behavior for detection testing.
-        The timing is artificially close to detect coordination.
+        The timing is artificially close to detect coordination patterns.
+
+        Args:
+            responder_ids: List of persona IDs that will respond.
+            original_event: The event being responded to.
+            topic: Topic for the responses.
+
+        Returns:
+            List of scheduled response InteractionEvents.
         """
         events = []
         min_delay, max_delay = self.config.coordination_delay_range
@@ -218,10 +270,19 @@ class InteractionScheduler:
         topic: str,
         response_probability: float = 0.3,
     ) -> List[InteractionEvent]:
-        """
-        Schedule organic (non-coordinated) responses.
-        
-        Timing is more spread out and not all responders respond.
+        """Schedule organic (non-coordinated) responses.
+
+        Timing is more spread out with exponential distribution,
+        and not all responders will respond based on probability.
+
+        Args:
+            responder_ids: List of persona IDs that may respond.
+            original_event: The event being responded to.
+            topic: Topic for the responses.
+            response_probability: Probability each persona responds. Defaults to 0.3.
+
+        Returns:
+            List of scheduled response InteractionEvents.
         """
         events = []
         
@@ -249,10 +310,10 @@ class InteractionScheduler:
         return events
     
     def get_next_event(self) -> Optional[InteractionEvent]:
-        """
-        Get the next scheduled event.
-        
-        Returns None if no events are scheduled.
+        """Get the next scheduled event and remove it from the queue.
+
+        Returns:
+            The next InteractionEvent, or None if no events are scheduled.
         """
         if not self._event_queue:
             return None
@@ -260,16 +321,23 @@ class InteractionScheduler:
         return heapq.heappop(self._event_queue)
     
     def peek_next_event(self) -> Optional[InteractionEvent]:
-        """Peek at the next event without removing it."""
+        """Peek at the next event without removing it from the queue.
+
+        Returns:
+            The next InteractionEvent, or None if the queue is empty.
+        """
         if not self._event_queue:
             return None
         return self._event_queue[0]
     
     def process_next_event(self) -> Optional[InteractionEvent]:
-        """
-        Process the next event and advance time.
-        
-        Returns the processed event or None if queue is empty.
+        """Process the next event and advance simulation time.
+
+        Removes the event from the queue, advances the clock to its
+        timestamp, and adds it to the completed events list.
+
+        Returns:
+            The processed InteractionEvent, or None if the queue is empty.
         """
         event = self.get_next_event()
         if event:
@@ -278,7 +346,14 @@ class InteractionScheduler:
         return event
     
     def process_events_until(self, end_time: datetime) -> List[InteractionEvent]:
-        """Process all events until the given time."""
+        """Process all events until the given time.
+
+        Args:
+            end_time: The datetime to process events up to (inclusive).
+
+        Returns:
+            List of all processed InteractionEvents.
+        """
         processed = []
         
         while self._event_queue and self._event_queue[0].timestamp <= end_time:
@@ -290,22 +365,49 @@ class InteractionScheduler:
         return processed
     
     def get_completed_events(self) -> List[InteractionEvent]:
-        """Get all completed events."""
+        """Get all completed events.
+
+        Returns:
+            A copy of the list of all completed InteractionEvents.
+        """
         return self._completed_events.copy()
     
     def get_events_by_persona(self, persona_id: str) -> List[InteractionEvent]:
-        """Get all completed events by a specific persona."""
+        """Get all completed events by a specific persona.
+
+        Args:
+            persona_id: The ID of the persona to filter by.
+
+        Returns:
+            List of InteractionEvents where the persona is the source.
+        """
         return [e for e in self._completed_events if e.source_id == persona_id]
     
     def get_events_by_topic(self, topic: str) -> List[InteractionEvent]:
-        """Get all completed events on a specific topic."""
+        """Get all completed events on a specific topic.
+
+        Args:
+            topic: The topic string to filter by.
+
+        Returns:
+            List of InteractionEvents matching the specified topic.
+        """
         return [e for e in self._completed_events if e.topic == topic]
     
     def get_timing_statistics(self, persona_id: str) -> Dict[str, float]:
-        """
-        Get timing statistics for a persona.
-        
-        Useful for detecting coordination through timing patterns.
+        """Get timing statistics for a persona.
+
+        Calculates average and standard deviation of intervals between
+        consecutive events. Useful for detecting coordination patterns.
+
+        Args:
+            persona_id: The ID of the persona to analyze.
+
+        Returns:
+            Dictionary containing:
+                - avg_interval_minutes: Average time between events.
+                - std_interval_minutes: Standard deviation of intervals.
+                - total_events: Total number of events by this persona.
         """
         events = self.get_events_by_persona(persona_id)
         
@@ -336,18 +438,31 @@ class InteractionScheduler:
     
     @property
     def pending_count(self) -> int:
-        """Number of pending events."""
+        """Get the number of pending events in the queue.
+
+        Returns:
+            Count of events waiting to be processed.
+        """
         return len(self._event_queue)
     
     @property
     def completed_count(self) -> int:
-        """Number of completed events."""
+        """Get the number of completed events.
+
+        Returns:
+            Count of events that have been processed.
+        """
         return len(self._completed_events)
     
     def clear(self) -> None:
-        """Clear all events."""
+        """Clear all events from both the queue and completed list."""
         self._event_queue.clear()
         self._completed_events.clear()
     
     def __repr__(self) -> str:
+        """Return a string representation of the scheduler.
+
+        Returns:
+            String showing pending and completed event counts.
+        """
         return f"InteractionScheduler(pending={self.pending_count}, completed={self.completed_count})"

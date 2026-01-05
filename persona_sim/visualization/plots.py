@@ -23,11 +23,21 @@ class SimulationPlotter:
     """
     
     def __init__(self, output_dir: str = "."):
+        """Initialize the simulation plotter.
+
+        Args:
+            output_dir: Directory path for saving output files. Defaults to
+                current directory.
+        """
         self.output_dir = output_dir
         self._has_matplotlib = self._check_matplotlib()
     
     def _check_matplotlib(self) -> bool:
-        """Check if matplotlib is available."""
+        """Check if matplotlib is available.
+
+        Returns:
+            True if matplotlib can be imported, False otherwise.
+        """
         try:
             import matplotlib
             return True
@@ -42,11 +52,18 @@ class SimulationPlotter:
         mean_positions: List[float],
         save_path: Optional[str] = None,
     ) -> Optional[Any]:
-        """
-        Plot belief convergence over time.
-        
-        Returns the figure if matplotlib is available, otherwise
-        returns the data as a dict for external plotting.
+        """Plot belief convergence over time.
+
+        Args:
+            topic: The topic or narrative being tracked.
+            timestamps: List of datetime objects for each data point.
+            variances: List of belief variance values at each timestamp.
+            mean_positions: List of mean belief positions at each timestamp.
+            save_path: Optional file path to save the plot image.
+
+        Returns:
+            The matplotlib figure if matplotlib is available, otherwise
+            returns the data as a dict for external plotting.
         """
         data = {
             "topic": topic,
@@ -91,10 +108,17 @@ class SimulationPlotter:
         similarity_matrix: Dict[Tuple[str, str], float],
         save_path: Optional[str] = None,
     ) -> Optional[Any]:
-        """
-        Plot persona similarity matrix as a heatmap.
-        
-        Returns the figure if matplotlib is available.
+        """Plot persona similarity matrix as a heatmap.
+
+        Args:
+            persona_ids: List of persona identifier strings.
+            similarity_matrix: Dictionary mapping persona ID pairs to similarity
+                scores between 0 and 1.
+            save_path: Optional file path to save the plot image.
+
+        Returns:
+            The matplotlib figure if matplotlib is available, otherwise
+            returns the data as a dict for external plotting.
         """
         n = len(persona_ids)
         
@@ -152,13 +176,19 @@ class SimulationPlotter:
         coordinated_ids: Optional[List[str]] = None,
         save_path: Optional[str] = None,
     ) -> Optional[Any]:
-        """
-        Plot network topology with optional coordination highlighting.
-        
+        """Plot network topology with optional coordination highlighting.
+
         Args:
-            nodes: List of persona IDs
-            edges: List of (source, target, strength) tuples
-            coordinated_ids: Optional list of coordinated persona IDs to highlight
+            nodes: List of persona IDs representing network nodes.
+            edges: List of (source, target, strength) tuples where strength
+                is a float between 0 and 1.
+            coordinated_ids: Optional list of coordinated persona IDs to
+                highlight in red.
+            save_path: Optional file path to save the plot image.
+
+        Returns:
+            The matplotlib figure if matplotlib is available, otherwise
+            returns the data as a dict for external plotting.
         """
         data = {
             "nodes": nodes,
@@ -225,11 +255,17 @@ class SimulationPlotter:
         signals: List[Dict[str, Any]],
         save_path: Optional[str] = None,
     ) -> Optional[Any]:
-        """
-        Plot coordination signal analysis.
-        
+        """Plot coordination signal analysis.
+
         Args:
-            signals: List of signal dictionaries with type, strength, etc.
+            signals: List of signal dictionaries containing 'signal_type'
+                and 'strength' keys.
+            save_path: Optional file path to save the plot image.
+
+        Returns:
+            The matplotlib figure if matplotlib is available, otherwise
+            returns the data as a dict for external plotting. Returns an
+            error dict if no signals are provided.
         """
         if not signals:
             return {"error": "No signals to plot"}
@@ -294,11 +330,17 @@ class SimulationPlotter:
         timeline: List[Dict[str, Any]],
         save_path: Optional[str] = None,
     ) -> Optional[Any]:
-        """
-        Plot simulation timeline metrics.
-        
+        """Plot simulation timeline metrics.
+
         Args:
-            timeline: List of step metrics dicts with step, interactions, etc.
+            timeline: List of step metrics dicts containing 'step',
+                'interactions', and 'belief_changes' keys.
+            save_path: Optional file path to save the plot image.
+
+        Returns:
+            The matplotlib figure if matplotlib is available, otherwise
+            returns the data as a dict for external plotting. Returns an
+            error dict if no timeline data is provided.
         """
         if not timeline:
             return {"error": "No timeline data"}
@@ -341,7 +383,12 @@ class SimulationPlotter:
         data: Dict[str, Any],
         filepath: str,
     ) -> None:
-        """Export plot data to JSON for external visualization."""
+        """Export plot data to JSON for external visualization.
+
+        Args:
+            data: Dictionary containing plot data to export.
+            filepath: Path to the output JSON file.
+        """
         with open(filepath, 'w') as f:
             json.dump(data, f, indent=2, default=str)
     
@@ -352,10 +399,20 @@ class SimulationPlotter:
         coordination_summary: Dict[str, Any],
         save_path: Optional[str] = None,
     ) -> str:
-        """
-        Create a text summary report of simulation results.
-        
-        Returns the report as a string.
+        """Create a text summary report of simulation results.
+
+        Args:
+            metrics: Dictionary containing simulation metrics such as
+                simulation_id, total_steps, persona_count, etc.
+            convergence_data: List of dictionaries with topic convergence
+                information including 'topic' and 'convergence_rate'.
+            coordination_summary: Dictionary containing coordination detection
+                results including total_signals, strong_signals, and
+                coordinated_personas.
+            save_path: Optional file path to save the text report.
+
+        Returns:
+            The formatted report as a string.
         """
         lines = [
             "=" * 60,
@@ -431,4 +488,9 @@ class SimulationPlotter:
         return report
     
     def __repr__(self) -> str:
+        """Return string representation of the plotter.
+
+        Returns:
+            String indicating matplotlib availability status.
+        """
         return f"SimulationPlotter(matplotlib={'available' if self._has_matplotlib else 'not available'})"

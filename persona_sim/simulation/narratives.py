@@ -26,14 +26,22 @@ class BeliefSnapshot:
     
     @property
     def mean_position(self) -> float:
-        """Average belief position."""
+        """Calculate the average belief position across all personas.
+        
+        Returns:
+            float: The mean of all belief positions, or 0.0 if no positions exist.
+        """
         if not self.belief_positions:
             return 0.0
         return sum(self.belief_positions.values()) / len(self.belief_positions)
     
     @property
     def position_variance(self) -> float:
-        """Variance in belief positions."""
+        """Calculate the variance of belief positions.
+        
+        Returns:
+            float: The variance of belief positions, or 0.0 if fewer than 2 positions.
+        """
         if len(self.belief_positions) < 2:
             return 0.0
         mean = self.mean_position
@@ -41,19 +49,28 @@ class BeliefSnapshot:
     
     @property
     def consensus_score(self) -> float:
-        """
-        Measure of consensus (0 = no consensus, 1 = full consensus).
+        """Measure the degree of consensus in beliefs.
         
         Based on inverse of variance normalized to [0, 1].
+        
+        Returns:
+            float: A value from 0 (no consensus) to 1 (full consensus).
         """
         # Max variance is 1.0 (positions range from -1 to 1)
         return 1.0 - min(1.0, self.position_variance)
     
     def get_clusters(self, threshold: float = 0.3) -> List[Set[str]]:
-        """
-        Identify clusters of personas with similar beliefs.
+        """Identify clusters of personas with similar beliefs.
         
-        Simple clustering based on position distance.
+        Uses simple clustering based on position distance.
+        
+        Args:
+            threshold: Maximum position difference for personas to be in the same
+                cluster. Defaults to 0.3.
+        
+        Returns:
+            List[Set[str]]: A list of sets, where each set contains persona IDs
+                belonging to the same cluster.
         """
         clusters: List[Set[str]] = []
         assigned = set()
@@ -99,24 +116,43 @@ class Narrative:
     propagation_paths: List[Tuple[str, str, datetime]] = field(default_factory=list)
     
     def add_snapshot(self, snapshot: BeliefSnapshot) -> None:
-        """Add a belief snapshot."""
+        """Add a belief snapshot to the narrative history.
+        
+        Args:
+            snapshot: The BeliefSnapshot to add to the timeline.
+        """
         self.snapshots.append(snapshot)
     
     def record_propagation(self, source_id: str, target_id: str, timestamp: datetime) -> None:
-        """Record a belief propagation from source to target."""
+        """Record a belief propagation event from source to target persona.
+        
+        Args:
+            source_id: The persona ID who influenced the belief change.
+            target_id: The persona ID whose belief was influenced.
+            timestamp: When the propagation occurred.
+        """
         self.propagation_paths.append((source_id, target_id, timestamp))
         self.interaction_count += 1
     
     @property
     def latest_snapshot(self) -> Optional[BeliefSnapshot]:
-        """Get the most recent snapshot."""
+        """Get the most recent belief snapshot.
+        
+        Returns:
+            Optional[BeliefSnapshot]: The last snapshot in the timeline, or None
+                if no snapshots exist.
+        """
         return self.snapshots[-1] if self.snapshots else None
     
     def get_convergence_rate(self) -> float:
-        """
-        Calculate how quickly beliefs are converging.
+        """Calculate how quickly beliefs are converging or diverging.
         
-        Positive = converging, Negative = diverging, 0 = stable.
+        Compares variance between first and last snapshots, normalized by time.
+        
+        Returns:
+            float: Rate of convergence per hour. Positive values indicate
+                converging beliefs, negative values indicate diverging beliefs,
+                and 0 indicates stable beliefs.
         """
         if len(self.snapshots) < 2:
             return 0.0
@@ -134,10 +170,17 @@ class Narrative:
         return (first_var - last_var) / (time_delta / 3600)  # Per hour
     
     def get_influential_personas(self, top_n: int = 5) -> List[Tuple[str, int]]:
-        """
-        Identify the most influential personas for this narrative.
+        """Identify the most influential personas for this narrative.
         
-        Based on how often they appear as sources in propagation.
+        Influence is measured by how often a persona appears as a source
+        in belief propagation events.
+        
+        Args:
+            top_n: Maximum number of personas to return. Defaults to 5.
+        
+        Returns:
+            List[Tuple[str, int]]: A list of tuples containing (persona_id, count)
+                sorted by influence count in descending order.
         """
         source_counts: Dict[str, int] = defaultdict(int)
         
@@ -159,24 +202,43 @@ class NarrativeTracker:
     """
     
     def __init__(self):
+        """Initialize the NarrativeTracker with empty tracking data."""
         self._narratives: Dict[str, Narrative] = {}
         self._persona_beliefs: Dict[str, Dict[str, float]] = defaultdict(dict)
         self._snapshot_interval: int = 10  # Steps between snapshots
         self._step_count: int = 0
     
     def register_topic(self, topic: str) -> Narrative:
-        """Register a new topic to track."""
+        """Register a new topic to track.
+        
+        Args:
+            topic: The topic name to register.
+        
+        Returns:
+            Narrative: The Narrative object for the topic (existing or newly created).
+        """
         if topic not in self._narratives:
             self._narratives[topic] = Narrative(topic=topic)
         return self._narratives[topic]
     
     def get_narrative(self, topic: str) -> Optional[Narrative]:
-        """Get a tracked narrative."""
+        """Get a tracked narrative by topic name.
+        
+        Args:
+            topic: The topic name to look up.
+        
+        Returns:
+            Optional[Narrative]: The Narrative object if found, None otherwise.
+        """
         return self._narratives.get(topic)
     
     @property
     def topics(self) -> List[str]:
-        """All tracked topics."""
+        """Get all tracked topic names.
+        
+        Returns:
+            List[str]: A list of all registered topic names.
+        """
         return list(self._narratives.keys())
     
     def update_belief(
@@ -207,7 +269,15 @@ class NarrativeTracker:
             )
     
     def take_snapshot(self, topic: str, timestamp: Optional[datetime] = None) -> BeliefSnapshot:
-        """Take a snapshot of current belief states for a topic."""
+        """Take a snapshot of current belief states for a topic.
+        
+        Args:
+            topic: The topic to snapshot.
+            timestamp: Optional timestamp for the snapshot. Defaults to now.
+        
+        Returns:
+            BeliefSnapshot: The created snapshot containing current belief positions.
+        """
         timestamp = timestamp or datetime.now()
         
         positions = {}
@@ -231,21 +301,39 @@ class NarrativeTracker:
         return snapshot
     
     def take_all_snapshots(self, timestamp: Optional[datetime] = None) -> List[BeliefSnapshot]:
-        """Take snapshots for all tracked topics."""
+        """Take snapshots for all tracked topics.
+        
+        Args:
+            timestamp: Optional timestamp for all snapshots. Defaults to now.
+        
+        Returns:
+            List[BeliefSnapshot]: A list of snapshots, one for each tracked topic.
+        """
         return [self.take_snapshot(topic, timestamp) for topic in self._narratives.keys()]
     
     def on_step(self, timestamp: Optional[datetime] = None) -> None:
-        """Called each simulation step to potentially take snapshots."""
+        """Process a simulation step, potentially taking snapshots.
+        
+        Automatically takes snapshots at the configured interval.
+        
+        Args:
+            timestamp: Optional timestamp for snapshots. Defaults to now.
+        """
         self._step_count += 1
         
         if self._step_count % self._snapshot_interval == 0:
             self.take_all_snapshots(timestamp)
     
     def compute_pairwise_similarity(self, persona_a: str, persona_b: str) -> float:
-        """
-        Compute belief similarity between two personas across all topics.
+        """Compute belief similarity between two personas across all topics.
         
-        Returns value from 0 (opposite) to 1 (identical).
+        Args:
+            persona_a: First persona ID.
+            persona_b: Second persona ID.
+        
+        Returns:
+            float: Similarity score from 0 (opposite beliefs) to 1 (identical beliefs).
+                Returns 0.5 if personas share no common topics.
         """
         beliefs_a = self._persona_beliefs.get(persona_a, {})
         beliefs_b = self._persona_beliefs.get(persona_b, {})
@@ -266,7 +354,15 @@ class NarrativeTracker:
         return 1.0 - (total_diff / max_diff)
     
     def compute_similarity_matrix(self, persona_ids: List[str]) -> Dict[Tuple[str, str], float]:
-        """Compute pairwise similarity for all persona pairs."""
+        """Compute pairwise belief similarity for all persona pairs.
+        
+        Args:
+            persona_ids: List of persona IDs to compare.
+        
+        Returns:
+            Dict[Tuple[str, str], float]: A dictionary mapping persona pairs to
+                their similarity scores. Both (a, b) and (b, a) keys are included.
+        """
         matrix = {}
         
         for i, id_a in enumerate(persona_ids):
@@ -278,7 +374,16 @@ class NarrativeTracker:
         return matrix
     
     def get_narrative_summary(self, topic: str) -> Dict[str, any]:
-        """Get a summary of a narrative's evolution."""
+        """Get a summary of a narrative's evolution.
+        
+        Args:
+            topic: The topic name to summarize.
+        
+        Returns:
+            Dict[str, any]: A dictionary containing narrative statistics including
+                consensus score, convergence rate, influential personas, and more.
+                Returns an error dict if the topic is not tracked.
+        """
         narrative = self._narratives.get(topic)
         if not narrative:
             return {"error": f"Topic '{topic}' not tracked"}
@@ -298,7 +403,12 @@ class NarrativeTracker:
         }
     
     def get_all_summaries(self) -> List[Dict[str, any]]:
-        """Get summaries for all tracked narratives."""
+        """Get summaries for all tracked narratives.
+        
+        Returns:
+            List[Dict[str, any]]: A list of summary dictionaries, one for each
+                tracked topic.
+        """
         return [self.get_narrative_summary(topic) for topic in self._narratives.keys()]
     
     def detect_echo_chambers(
@@ -306,10 +416,20 @@ class NarrativeTracker:
         similarity_threshold: float = 0.8,
         min_size: int = 3,
     ) -> List[Set[str]]:
-        """
-        Detect potential echo chambers based on belief similarity.
+        """Detect potential echo chambers based on belief similarity.
         
-        Returns groups of personas with highly similar beliefs.
+        Identifies connected groups of personas whose beliefs are highly similar
+        using graph-based clustering.
+        
+        Args:
+            similarity_threshold: Minimum similarity score for personas to be
+                considered part of the same echo chamber. Defaults to 0.8.
+            min_size: Minimum number of personas required to form an echo chamber.
+                Defaults to 3.
+        
+        Returns:
+            List[Set[str]]: A list of sets, where each set contains persona IDs
+                belonging to the same echo chamber.
         """
         persona_ids = list(self._persona_beliefs.keys())
         
@@ -359,10 +479,15 @@ class NarrativeTracker:
         return chambers
     
     def clear(self) -> None:
-        """Clear all tracking data."""
+        """Clear all tracking data and reset the step counter."""
         self._narratives.clear()
         self._persona_beliefs.clear()
         self._step_count = 0
     
     def __repr__(self) -> str:
+        """Return a string representation of the NarrativeTracker.
+        
+        Returns:
+            str: A string showing the number of tracked topics and personas.
+        """
         return f"NarrativeTracker(topics={len(self._narratives)}, personas={len(self._persona_beliefs)})"

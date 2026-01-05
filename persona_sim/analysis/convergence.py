@@ -28,14 +28,23 @@ class ConvergenceMetrics:
     
     @property
     def variance_reduction(self) -> float:
-        """Percentage reduction in variance."""
+        """Calculate the percentage reduction in variance.
+
+        Returns:
+            float: The percentage reduction from initial to final variance.
+                Returns 0.0 if initial variance is zero.
+        """
         if self.initial_variance == 0:
             return 0.0
         return (self.initial_variance - self.final_variance) / self.initial_variance
     
     @property
     def is_converging(self) -> bool:
-        """Whether beliefs are converging."""
+        """Determine whether beliefs are converging.
+
+        Returns:
+            bool: True if convergence rate is positive, False otherwise.
+        """
         return self.convergence_rate > 0
 
 
@@ -51,14 +60,22 @@ class ConvergenceAnalyzer:
     """
     
     def __init__(self, consensus_threshold: float = 0.2):
-        """
+        """Initialize the ConvergenceAnalyzer.
+
         Args:
-            consensus_threshold: Maximum variance for consensus (default 0.2)
+            consensus_threshold: Maximum variance for consensus (default 0.2).
         """
         self.consensus_threshold = consensus_threshold
     
     def analyze_narrative(self, narrative: Narrative) -> ConvergenceMetrics:
-        """Analyze convergence for a single narrative."""
+        """Analyze convergence for a single narrative.
+
+        Args:
+            narrative: The narrative to analyze.
+
+        Returns:
+            ConvergenceMetrics: Metrics describing belief convergence for the topic.
+        """
         if not narrative.snapshots:
             return self._empty_metrics(narrative.topic)
         
@@ -104,7 +121,14 @@ class ConvergenceAnalyzer:
         )
     
     def _empty_metrics(self, topic: str) -> ConvergenceMetrics:
-        """Create empty metrics for topics with no data."""
+        """Create empty metrics for topics with no data.
+
+        Args:
+            topic: The topic name to create empty metrics for.
+
+        Returns:
+            ConvergenceMetrics: Metrics with all values set to zero/None/False.
+        """
         return ConvergenceMetrics(
             topic=topic,
             initial_variance=0.0,
@@ -121,7 +145,15 @@ class ConvergenceAnalyzer:
         self,
         snapshots: List[BeliefSnapshot],
     ) -> Optional[float]:
-        """Calculate time to reach half of initial variance."""
+        """Calculate time to reach half of initial variance.
+
+        Args:
+            snapshots: List of belief snapshots over time.
+
+        Returns:
+            Optional[float]: Time in hours to reach half variance, or None if
+                not reached or insufficient data.
+        """
         if len(snapshots) < 2:
             return None
         
@@ -136,10 +168,15 @@ class ConvergenceAnalyzer:
         return None
     
     def _calculate_polarization(self, snapshot: BeliefSnapshot) -> float:
-        """
-        Calculate polarization index.
-        
-        High polarization = beliefs clustered at extreme positions.
+        """Calculate polarization index.
+
+        High polarization indicates beliefs clustered at extreme positions.
+
+        Args:
+            snapshot: The belief snapshot to analyze.
+
+        Returns:
+            float: Polarization index from 0 (no polarization) to 1 (fully polarized).
         """
         if not snapshot.belief_positions:
             return 0.0
@@ -167,7 +204,14 @@ class ConvergenceAnalyzer:
         self,
         tracker: NarrativeTracker,
     ) -> List[ConvergenceMetrics]:
-        """Analyze convergence for all tracked narratives."""
+        """Analyze convergence for all tracked narratives.
+
+        Args:
+            tracker: The narrative tracker containing narratives to analyze.
+
+        Returns:
+            List[ConvergenceMetrics]: List of convergence metrics for each narrative.
+        """
         metrics = []
         
         for topic in tracker.topics:
@@ -182,10 +226,18 @@ class ConvergenceAnalyzer:
         metrics: List[ConvergenceMetrics],
         rate_threshold: float = 0.5,
     ) -> List[ConvergenceMetrics]:
-        """
-        Detect narratives with anomalously fast convergence.
-        
+        """Detect narratives with anomalously fast convergence.
+
         Fast convergence can indicate coordinated behavior.
+
+        Args:
+            metrics: List of convergence metrics to analyze.
+            rate_threshold: Number of standard deviations above mean to consider
+                anomalous (default 0.5).
+
+        Returns:
+            List[ConvergenceMetrics]: Metrics for narratives with anomalously
+                fast convergence rates.
         """
         # Calculate baseline rate
         rates = [m.convergence_rate for m in metrics if m.convergence_rate > 0]
@@ -205,10 +257,14 @@ class ConvergenceAnalyzer:
         narrative_a: Narrative,
         narrative_b: Narrative,
     ) -> float:
-        """
-        Compare convergence curves of two narratives.
-        
-        Returns similarity score from 0 (different) to 1 (identical).
+        """Compare convergence curves of two narratives.
+
+        Args:
+            narrative_a: First narrative to compare.
+            narrative_b: Second narrative to compare.
+
+        Returns:
+            float: Similarity score from 0 (different) to 1 (identical).
         """
         snapshots_a = narrative_a.snapshots
         snapshots_b = narrative_b.snapshots
@@ -249,7 +305,15 @@ class ConvergenceAnalyzer:
         self,
         metrics: List[ConvergenceMetrics],
     ) -> Dict[str, any]:
-        """Get a summary of convergence across all narratives."""
+        """Get a summary of convergence across all narratives.
+
+        Args:
+            metrics: List of convergence metrics to summarize.
+
+        Returns:
+            Dict[str, any]: Summary dictionary containing counts, rates, and
+                topic lists for converging, consensus, and polarized narratives.
+        """
         if not metrics:
             return {"error": "No metrics available"}
         
@@ -273,4 +337,9 @@ class ConvergenceAnalyzer:
         }
     
     def __repr__(self) -> str:
+        """Return a string representation of the analyzer.
+
+        Returns:
+            str: String representation including the consensus threshold.
+        """
         return f"ConvergenceAnalyzer(threshold={self.consensus_threshold})"

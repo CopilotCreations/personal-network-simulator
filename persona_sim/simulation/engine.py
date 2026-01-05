@@ -77,6 +77,11 @@ class SimulationEngine:
         self,
         config: Optional[SimulationConfig] = None,
     ):
+        """Initialize the simulation engine.
+
+        Args:
+            config: Configuration for the simulation. If None, uses defaults.
+        """
         self.config = config or SimulationConfig()
         self._rng = random.Random(self.config.seed)
         
@@ -107,7 +112,13 @@ class SimulationEngine:
         style_constraints: Optional[StyleConstraints] = None,
         is_coordinated: bool = False,
     ) -> None:
-        """Add a persona to the simulation."""
+        """Add a persona to the simulation.
+
+        Args:
+            persona: The persona to add.
+            style_constraints: Optional linguistic style constraints for the persona.
+            is_coordinated: Whether this persona is part of a coordinated group.
+        """
         self._personas[persona.id] = persona
         self._memories[persona.id] = Memory()
         
@@ -128,50 +139,100 @@ class SimulationEngine:
         target_id: str,
         strength: float = 0.5,
     ) -> None:
-        """Add a connection between two personas."""
+        """Add a connection between two personas.
+
+        Args:
+            source_id: ID of the source persona.
+            target_id: ID of the target persona.
+            strength: Connection strength between 0 and 1. Defaults to 0.5.
+        """
         from ..network.graph import ConnectionType
         self._graph.add_connection(source_id, target_id, ConnectionType.MUTUAL, strength)
     
     def get_persona(self, persona_id: str) -> Optional[Persona]:
-        """Get a persona by ID."""
+        """Get a persona by ID.
+
+        Args:
+            persona_id: The unique identifier of the persona.
+
+        Returns:
+            The persona if found, None otherwise.
+        """
         return self._personas.get(persona_id)
     
     def get_memory(self, persona_id: str) -> Optional[Memory]:
-        """Get a persona's memory."""
+        """Get a persona's memory.
+
+        Args:
+            persona_id: The unique identifier of the persona.
+
+        Returns:
+            The persona's memory if found, None otherwise.
+        """
         return self._memories.get(persona_id)
     
     def get_style(self, persona_id: str) -> Optional[LinguisticStyle]:
-        """Get a persona's linguistic style."""
+        """Get a persona's linguistic style.
+
+        Args:
+            persona_id: The unique identifier of the persona.
+
+        Returns:
+            The persona's linguistic style if found, None otherwise.
+        """
         return self._styles.get(persona_id)
     
     @property
     def graph(self) -> SocialGraph:
-        """Get the social graph."""
+        """Get the social graph.
+
+        Returns:
+            The social graph representing connections between personas.
+        """
         return self._graph
     
     @property
     def state(self) -> SimulationState:
-        """Get current simulation state."""
+        """Get current simulation state.
+
+        Returns:
+            The current state of the simulation.
+        """
         return self._state
     
     @property
     def personas(self) -> List[Persona]:
-        """Get all personas."""
+        """Get all personas.
+
+        Returns:
+            List of all personas in the simulation.
+        """
         return list(self._personas.values())
     
     def on_interaction(self, callback: Callable[[InteractionEvent], None]) -> None:
-        """Register a callback for interaction events."""
+        """Register a callback for interaction events.
+
+        Args:
+            callback: Function to call when an interaction event occurs.
+        """
         self._on_interaction.append(callback)
     
     def on_step(self, callback: Callable[[SimulationState], None]) -> None:
-        """Register a callback for step completion."""
+        """Register a callback for step completion.
+
+        Args:
+            callback: Function to call when a simulation step completes.
+        """
         self._on_step.append(callback)
     
     def run(self) -> SimulationState:
-        """
-        Run the full simulation.
-        
-        Returns the final simulation state.
+        """Run the full simulation.
+
+        Executes simulation steps until the configured duration is reached
+        or the simulation is paused.
+
+        Returns:
+            The final simulation state after completion.
         """
         self._state.phase = SimulationPhase.RUNNING
         end_time = self.config.start_time + timedelta(hours=self.config.duration_hours)
@@ -186,7 +247,14 @@ class SimulationEngine:
         return self._state
     
     def run_steps(self, n_steps: int) -> SimulationState:
-        """Run a specific number of simulation steps."""
+        """Run a specific number of simulation steps.
+
+        Args:
+            n_steps: Number of steps to run.
+
+        Returns:
+            The simulation state after running the specified steps.
+        """
         self._state.phase = SimulationPhase.RUNNING
         
         for _ in range(n_steps):
@@ -198,16 +266,26 @@ class SimulationEngine:
         return self._state
     
     def pause(self) -> None:
-        """Pause the simulation."""
+        """Pause the simulation.
+
+        Sets the simulation phase to PAUSED, stopping step execution.
+        """
         self._state.phase = SimulationPhase.PAUSED
     
     def resume(self) -> None:
-        """Resume a paused simulation."""
+        """Resume a paused simulation.
+
+        Resumes execution only if the simulation is currently paused.
+        """
         if self._state.phase == SimulationPhase.PAUSED:
             self._state.phase = SimulationPhase.RUNNING
     
     def _run_step(self) -> None:
-        """Execute a single simulation step."""
+        """Execute a single simulation step.
+
+        Generates new interactions, processes scheduled events,
+        advances time, and decays connection strengths.
+        """
         # Generate new interactions for this step
         self._generate_interactions()
         
@@ -233,7 +311,11 @@ class SimulationEngine:
             callback(self._state)
     
     def _generate_interactions(self) -> None:
-        """Generate new interactions for the current step."""
+        """Generate new interactions for the current step.
+
+        Selects random personas to post content and schedules responses
+        from followers. Handles both coordinated and organic responses.
+        """
         # Select random personas to post
         active_personas = self._rng.sample(
             list(self._personas.values()),
@@ -290,7 +372,14 @@ class SimulationEngine:
                 )
     
     def _handle_event(self, event: InteractionEvent) -> None:
-        """Handle a single interaction event."""
+        """Handle a single interaction event.
+
+        Applies linguistic style, records memories, updates beliefs,
+        and strengthens connections based on the interaction.
+
+        Args:
+            event: The interaction event to process.
+        """
         source = self._personas.get(event.source_id)
         if not source:
             return
@@ -353,7 +442,14 @@ class SimulationEngine:
             callback(event)
     
     def _estimate_sentiment(self, text: str) -> float:
-        """Simple rule-based sentiment estimation."""
+        """Simple rule-based sentiment estimation.
+
+        Args:
+            text: The text to analyze for sentiment.
+
+        Returns:
+            A sentiment score between -1 (negative) and 1 (positive).
+        """
         if not text:
             return 0.0
         
@@ -371,15 +467,30 @@ class SimulationEngine:
         return (pos_count - neg_count) / total
     
     def get_all_events(self) -> List[InteractionEvent]:
-        """Get all completed events."""
+        """Get all completed events.
+
+        Returns:
+            List of all interaction events that have been processed.
+        """
         return self._scheduler.get_completed_events()
     
     def get_events_by_topic(self, topic: str) -> List[InteractionEvent]:
-        """Get all events for a specific topic."""
+        """Get all events for a specific topic.
+
+        Args:
+            topic: The topic to filter events by.
+
+        Returns:
+            List of interaction events matching the specified topic.
+        """
         return self._scheduler.get_events_by_topic(topic)
     
     def export_state(self) -> Dict[str, Any]:
-        """Export current simulation state for analysis."""
+        """Export current simulation state for analysis.
+
+        Returns:
+            Dictionary containing simulation metrics and state information.
+        """
         return {
             "phase": self._state.phase.value,
             "current_time": self._state.current_time.isoformat(),
@@ -392,4 +503,9 @@ class SimulationEngine:
         }
     
     def __repr__(self) -> str:
+        """Return a string representation of the simulation engine.
+
+        Returns:
+            String showing persona count and current phase.
+        """
         return f"SimulationEngine(personas={len(self._personas)}, phase={self._state.phase.value})"

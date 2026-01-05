@@ -24,7 +24,18 @@ from .visualization.plots import SimulationPlotter
 
 
 def create_sample_personas(n: int, seed: Optional[int] = None) -> list:
-    """Create sample personas for demonstration."""
+    """Create sample personas for demonstration.
+
+    Generates a list of Persona objects with randomized profiles including
+    names, ages, occupations, interests, and political leanings.
+
+    Args:
+        n: The number of personas to create.
+        seed: Optional random seed for reproducibility.
+
+    Returns:
+        A list of Persona objects with randomized profiles.
+    """
     rng = random.Random(seed)
     
     names = [
@@ -63,7 +74,18 @@ def create_sample_personas(n: int, seed: Optional[int] = None) -> list:
 
 
 def create_sample_styles(personas: list, seed: Optional[int] = None) -> dict:
-    """Create sample linguistic styles for personas."""
+    """Create sample linguistic styles for personas.
+
+    Generates StyleConstraints for each persona with randomized tone,
+    emotional expression, vocabulary complexity, and punctuation preferences.
+
+    Args:
+        personas: A list of Persona objects to create styles for.
+        seed: Optional random seed for reproducibility.
+
+    Returns:
+        A dictionary mapping persona IDs to their StyleConstraints objects.
+    """
     rng = random.Random(seed)
     
     styles = {}
@@ -83,7 +105,23 @@ def create_sample_styles(personas: list, seed: Optional[int] = None) -> dict:
 
 
 def run_demo_simulation(args):
-    """Run a demonstration simulation."""
+    """Run a demonstration simulation.
+
+    Creates personas, builds a social network, runs the simulation engine,
+    analyzes results for convergence and coordination signals, and generates
+    a summary report.
+
+    Args:
+        args: Parsed command-line arguments containing:
+            - personas: Number of personas to create.
+            - coordinated_fraction: Fraction of coordinated personas.
+            - hours: Simulation duration in hours.
+            - seed: Random seed for reproducibility.
+            - output_dir: Optional directory for output files.
+
+    Returns:
+        Exit code (0 for success).
+    """
     print("=" * 60)
     print("PersonaNetworkSimulator - Demo Simulation")
     print("=" * 60)
@@ -277,7 +315,15 @@ def run_demo_simulation(args):
 
 
 def main():
-    """Main entry point for CLI."""
+    """Main entry point for CLI.
+
+    Parses command-line arguments and dispatches to the appropriate
+    subcommand handler. Supports 'demo' for running simulations and
+    '--version' for version information.
+
+    Returns:
+        Exit code (0 for success).
+    """
     parser = argparse.ArgumentParser(
         prog="persona_sim",
         description="""
